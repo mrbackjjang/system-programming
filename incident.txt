@@ -1,0 +1,6 @@
+[Incident Report]
+Start Time: Thu Jun 09 06:07:09 2005
+Last Update Time: Thu Jun 09 06:07:09 2005
+Logs Analyzed During Incident: 10
+Errors During Incident: 5
+Initial Error Message: [client 192.168.1.10] script '/var/www/html/test.php' not found or unable to stat
