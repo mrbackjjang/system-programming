@@ -1,37 +1,25 @@
 #include "report.h"
 #include <stdio.h>
 
-void report_write_summary(const char *filename, const metrics_t *metrics) {
-    FILE *f = fopen(filename, "w");
+void report_write_summary(const char *filepath, metrics_t *m) {
+    FILE *f = fopen(filepath, "w"); // 요약은 항상 최신 상태로 덮어쓰기
     if (!f) return;
-
-    const char *state_str = "HEALTHY";
-    if (metrics->state == STATE_WARNING) state_str = "WARNING";
-    if (metrics->state == STATE_CRITICAL) state_str = "CRITICAL";
-
-    fprintf(f, "[System Summary]\n");
-    fprintf(f, "State: %s\n", state_str);
-    fprintf(f, "Total Logs: %d\n", metrics->total_logs);
-    fprintf(f, "Error Ratio: %.2f%%\n", metrics->error_ratio * 100);
-    fprintf(f, "- Errors: %d\n", metrics->error_logs);
-    fprintf(f, "- Warnings: %d\n", metrics->warn_logs);
-    fprintf(f, "- Notices: %d\n", metrics->notice_logs);
+    
+    fprintf(f, "--- Log Analysis Summary ---\n");
+    fprintf(f, "Total Logs: %d\n", m->total_logs);
+    fprintf(f, "Errors: %d\n", m->error_count);
+    fprintf(f, "Warnings: %d\n", m->warn_count);
+    fprintf(f, "Notices: %d\n", m->notice_count);
     
     fclose(f);
 }
 
-void report_write_incident(const char *filename, const incident_t *incident) {
-    if (!incident->active) return; // Incident가 발생하지 않았으면 작성 안함
-
-    FILE *f = fopen(filename, "w");
+void report_write_incident(const char *filepath, log_entry_t *entry, const char *status_msg) {
+    FILE *f = fopen(filepath, "a"); // 히스토리 누적을 위해 a 모드(Append) 사용
     if (!f) return;
 
-    fprintf(f, "[Incident Report]\n");
-    fprintf(f, "Start Time: %s\n", incident->start_time);
-    fprintf(f, "Last Update Time: %s\n", incident->end_time);
-    fprintf(f, "Logs Analyzed During Incident: %d\n", incident->log_count_in_incident);
-    fprintf(f, "Errors During Incident: %d\n", incident->error_count_in_incident);
-    fprintf(f, "Initial Error Message: %s\n", incident->first_error_message);
+    // 파싱된 이벤트 시간(Event Time)을 기준으로 기록
+    fprintf(f, "[%s] %s (Level: %s)\n", entry->timestamp, status_msg, entry->level);
     
     fclose(f);
 }

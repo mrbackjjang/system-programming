@@ -32,7 +32,7 @@ void *receive_thread(void *arg) {
             strcpy(log_queue[q_rear], line);
             q_rear = (q_rear + 1) % QUEUE_SIZE;
             q_count++;
-            pthread_cond_signal(&cond); // 데이터가 들어왔음을 알림
+            pthread_cond_signal(&cond);
         }
         pthread_mutex_unlock(&lock);
     }
@@ -47,7 +47,7 @@ void *analysis_thread(void *arg) {
     while (1) {
         pthread_mutex_lock(&lock);
         while (q_count == 0) {
-            pthread_cond_wait(&cond, &lock); // 데이터가 들어올 때까지 대기
+            pthread_cond_wait(&cond, &lock);
         }
         strcpy(line, log_queue[q_front]);
         q_front = (q_front + 1) % QUEUE_SIZE;
@@ -57,7 +57,11 @@ void *analysis_thread(void *arg) {
         if (parser_parse_line(line, &entry)) {
             analysis_update(&metrics, &incident, &entry);
             report_write_summary("summary.txt", &metrics);
-            report_write_incident("incident.txt", &incident);
+            
+            // 에러가 발생했거나 크리티컬 상태일 때만 incident.txt에 시간 누적 기록
+            if (strcmp(entry.level, "error") == 0 || incident.is_critical) {
+                report_write_incident("incident.txt", &entry, incident.is_critical ? "CRITICAL DETECTED" : "ERROR OCCURRED");
+            }
         }
     }
     return NULL;
@@ -73,7 +77,6 @@ int main() {
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     serv_addr.sin_port = htons(8080);
 
-    // 포트 재사용 옵션 (테스트 시 포트 바인딩 에러 방지)
     int opt_val = 1;
     setsockopt(serv_sock, SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof(opt_val));
 
@@ -89,7 +92,7 @@ int main() {
     pthread_create(&ana_tid, NULL, analysis_thread, NULL);
 
     pthread_join(rcv_tid, NULL);
-    pthread_cancel(ana_tid); // 수신이 끝나면 분석 쓰레드도 종료
+    pthread_cancel(ana_tid);
     
     close(serv_sock);
     return 0;

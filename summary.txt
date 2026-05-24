@@ -1,7 +1,0 @@
-[System Summary]
-State: CRITICAL
-Total Logs: 18
-Error Ratio: 38.89%
-- Errors: 7
-- Warnings: 4
-- Notices: 7
